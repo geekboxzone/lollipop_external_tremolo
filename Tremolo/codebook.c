@@ -45,6 +45,7 @@
 #include "misc.h"
 #include "os.h"
 
+#define MARKER_SIZE 33
 
 /**** pack/unpack helpers ******************************************/
 int _ilog(unsigned int v){
@@ -145,7 +146,7 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
 		       codebook *b, oggpack_buffer *opb,int maptype){
   long i,j,count=0;
   long top=0;
-  ogg_uint32_t marker[33];
+  ogg_uint32_t marker[MARKER_SIZE];
 
   if (n<1)
     return 1;
@@ -158,6 +159,10 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
     for(i=0;i<n;i++){
       long length=l[i];
       if(length){
+          if (length < 0 || length >= MARKER_SIZE) {
+                       //ALOGE("b/23881715");
+                       return 1;
+                     }
 	ogg_uint32_t entry=marker[length];
 	long chase=0;
 	if(count && !entry)return -1; /* overpopulated tree! */
@@ -200,7 +205,7 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
 	/* prune the tree; the implicit invariant says all the longer
 	   markers were dangling from our just-taken node.  Dangle them
 	   from our *new* node. */
-	for(j=length+1;j<33;j++)
+	for(j=length+1;j<MARKER_SIZE;j++)
 	  if((marker[j]>>1) == entry){
 	    entry=marker[j];
 	    marker[j]=marker[j-1]<<1;
